@@ -1,6 +1,6 @@
-   [theme]
-   primaryColor = "#10b981"       # Vibrant Trading Green
-   backgroundColor = "#0b0e14"    # Deep Professional Dark
-   secondaryBackgroundColor = "#151a23" # Slightly lighter for sidebars/panels
-   textColor = "#e2e8f0"          # Crisp, readable light gray/white
-   font = "sans serif"
+[theme]
+primaryColor = "#2563eb"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f8fafc"
+textColor = "#0f172a"
+font = "sans serif"

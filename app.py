@@ -7,45 +7,39 @@ st.set_page_config(page_title="VKR Day Trader OS", page_icon="📈", layout="wid
 
 # Modern, Sleek Custom CSS for Terminal-like code blocks and clean spacing
 st.markdown("""
-    <style>
-    /* Make code blocks look like a real trading terminal */
-    code { 
-        background-color: #000000 !important; 
-        color: #10b981 !important; 
-        border: 1px solid #1f2937;
-        border-radius: 6px;
-        font-family: 'Courier New', Courier, monospace;
-    }
-    /* Clean up the sidebar */
-    section[data-testid="stSidebar"] {
-        background-color: #151a23 !important;
-        border-right: 1px solid #1f2937;
-    }
-    /* Make buttons pop */
+        /* Premium Light Fintech Theme */
+    .main { background-color: #ffffff !important; }
+    section[data-testid="stSidebar"] { background-color: #f8fafc !important; border-right: 1px solid #e2e8f0; }
     .stButton > button { 
-        background-color: #10b981 !important; 
-        color: #000000 !important; 
-        font-weight: 700; 
+        background-color: #2563eb !important; 
+        color: #ffffff !important; 
+        font-weight: 600; 
+        border-radius: 8px;
         border: none;
-        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
         transition: all 0.2s;
     }
-    .stButton > button:hover { 
-        background-color: #059669 !important; 
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-    }
-    /* Clean up text inputs */
+    .stButton > button:hover { background-color: #1d4ed8 !important; box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3); transform: translateY(-1px); }
     .stTextInput > div > div > input, .stNumberInput > div > div > input, .stSelectbox > div > div > select { 
-        background-color: #1e2530 !important; 
-        color: #ffffff !important; 
-        border: 1px solid #374151 !important;
-        border-radius: 6px;
+        background-color: #ffffff !important; 
+        color: #0f172a !important; 
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 8px;
+        transition: all 0.2s;
     }
-    /* Hide default Streamlit footer decoration */
+    .stTextInput > div > div > input:focus, .stSelectbox > div > div > select:focus {
+        border-color: #2563eb !important;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+    }
+    code { 
+        background-color: #f1f5f9 !important; 
+        color: #0f172a !important; 
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        font-family: 'Courier New', monospace;
+    }
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    </style>
 """, unsafe_allow_html=True)
 
 # Header

@@ -142,12 +142,34 @@
             content.innerHTML = `<div class="flex justify-center py-20"><div class="w-8 h-8 border-2 border-cmc-blue border-t-transparent rounded-full animate-spin"></div></div>`;
 
             try {
-                // Fetch live data using Yahoo Finance via a free CORS proxy
                 const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
-                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`;
                 
-                const response = await fetch(proxyUrl);
-                const json = await response.json();
+                // Try multiple reliable CORS proxies with the correct "?url=" parameter
+                const proxies = [
+                    `https://corsproxy.io/?url=${encodeURIComponent(yahooUrl)}`,
+                    `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`
+                ];
+
+                let response = null;
+                for (const proxyUrl of proxies) {
+                    try {
+                        response = await fetch(proxyUrl);
+                        if (response.ok) break;
+                    } catch (e) { continue; }
+                }
+
+                if (!response || !response.ok) {
+                    throw new Error("Data providers are currently blocking the request.");
+                }
+
+                const text = await response.text();
+                let json;
+                try {
+                    json = JSON.parse(text);
+                } catch (e) {
+                    console.error("Proxy returned:", text);
+                    throw new Error("Data format error. Try again in a moment.");
+                }
                 
                 if (!json.chart || !json.chart.result || json.chart.result.length === 0) {
                     throw new Error("Asset not found");
@@ -192,7 +214,7 @@
                     </div>
                 `;
             } catch (error) {
-                content.innerHTML = `<div class="text-center py-20 text-red-500"><p>Failed to load data for ${symbol}.</p><p class="text-xs mt-2 text-gray-400">Please check the ticker symbol.</p></div>`;
+                content.innerHTML = `<div class="text-center py-20 text-red-500"><p>Failed to load data for ${symbol}.</p><p class="text-xs mt-2 text-gray-400">${error.message}</p></div>`;
             }
         }
 
@@ -201,14 +223,13 @@
             outputBox.innerHTML = `<p class="text-sm text-gray-500 animate-pulse">Fetching live headlines...</p>`;
             
             try {
-                // Use a free RSS to JSON converter for Yahoo Finance news
                 const rssUrl = `https://feeds.finance.yahoo.com/rss/2.0/headline?s=${symbol}&region=US&lang=en-US`;
                 const newsApiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
                 
                 const res = await fetch(newsApiUrl);
                 const data = await res.json();
                 
-                if (data.status === 'ok' && data.items.length > 0) {
+                if (data.status === 'ok' && data.items && data.items.length > 0) {
                     outputBox.innerHTML = data.items.slice(0, 3).map(item => `
                         <a href="${item.link}" target="_blank" class="block p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition">
                             <p class="text-sm font-medium text-gray-900 line-clamp-2">${item.title}</p>

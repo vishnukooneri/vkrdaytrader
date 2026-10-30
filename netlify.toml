@@ -1,11 +1,9 @@
-   [build]
-     command = ""
-     publish = "."
-     functions = "netlify/functions"
+[build]
+  command = ""
+  publish = "."
+  functions = "netlify/functions"
 
-   # This magic redirect lets your HTML keep calling "/api/..." 
-   # and secretly sends it to your Python scripts!
-   [[redirects]]
-     from = "/api/*"
-     to = "/.netlify/functions/:splat"
-     status = 200
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200

@@ -6,14 +6,16 @@ def handler(event, context):
     query_params = event.get('queryStringParameters') or {}
     ticker = query_params.get('ticker', 'AAPL')
     
-    # Point directly to YOUR original GitHub script
     script_path = os.path.join(os.getcwd(), 'trader-news', 'news.py')
     
     try:
-        # Run your actual GitHub code
+        # We added "--state /tmp/news.json" so the script saves its memory 
+        # in Netlify's temporary folder instead of your read-only repository folder.
         result = subprocess.run(
-            ['python3', script_path, '--tickers', ticker, '--hours', '24'],
-            capture_output=True, text=True, timeout=15
+            ['python3', script_path, '--tickers', ticker, '--hours', '24', '--state', '/tmp/news.json'],
+            capture_output=True, 
+            text=True, 
+            timeout=15
         )
         
         return {

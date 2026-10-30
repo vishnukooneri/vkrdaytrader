@@ -138,7 +138,7 @@
             content.innerHTML = `<div class="flex justify-center py-20"><div class="w-8 h-8 border-2 border-cmc-blue border-t-transparent rounded-full animate-spin"></div></div>`;
 
             try {
-                const response = await fetch(`/.netlify/functions/stock_data?ticker=${symbol}`);
+                const response = await fetch(`/api/stock_data?ticker=${symbol}`);
                 const data = await response.json();
                 if (data.error) throw new Error(data.error);
 
@@ -185,7 +185,7 @@
             outputBox.classList.remove('hidden');
             outputBox.innerText = `> Executing trader-news/news.py for ${ticker}...\n> Awaiting GitHub script response...`;
             try {
-                const res = await fetch(`/.netlify/functions/run_news?ticker=${ticker}`);
+                const res = await fetch(`/api/run_news?ticker=${ticker}`);
                 const data = await res.json();
                 outputBox.innerText = `> Source: ${data.source}\n> Ticker: ${data.ticker}\n\n${data.terminal_output || 'Script executed successfully.'}\n\n${data.errors || ''}`;
             } catch (err) {

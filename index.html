@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VKR Global Market Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --cmc-blue: #3861fb; --cmc-green: #16c784; --cmc-red: #ea3943; }
+        body { font-family: 'Inter', sans-serif; background-color: #f3f5f8; color: #0b1426; }
+        .cmc-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .cmc-search { background: #f8f9fa; border: 1px solid #e6e8ec; transition: all 0.2s; }
+        .cmc-search:focus { border-color: var(--cmc-blue); box-shadow: 0 0 0 3px rgba(56, 97, 251, 0.1); outline: none; }
+        .text-cmc-blue { color: var(--cmc-blue); }
+        .bg-cmc-blue { background-color: var(--cmc-blue); }
+        .pos-text { color: var(--cmc-green); }
+        .neg-text { color: var(--cmc-red); }
+        .pos-bg { background-color: rgba(22, 199, 132, 0.1); color: var(--cmc-green); font-weight: 600; }
+        .neg-bg { background-color: rgba(234, 57, 67, 0.1); color: var(--cmc-red); font-weight: 600; }
+        .drawer { transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .drawer.open { transform: translateX(0); }
+        .fade-in { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <nav class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-6">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-cmc-blue rounded-lg flex items-center justify-center text-white font-bold">V</div>
+                <span class="font-bold text-lg hidden md:block">VKR Tracker</span>
+            </div>
+            <div class="flex-1 max-w-md relative">
+                <input type="text" id="global-search" placeholder="Search global assets (AAPL, RELIANCE.NS, BTC-USD)..." 
+                    class="w-full cmc-search rounded-full py-2 px-5 text-sm" onkeypress="handleGlobalSearch(event)">
+                <div class="absolute right-4 top-2.5 text-gray-400">🔍</div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Today's Global Market Prices</h1>
+        <p class="text-gray-500 mt-2 text-sm mb-8">Track stocks, crypto, and forex. Click any row to run GitHub algorithms.</p>
+
+        <div class="cmc-card overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            <th class="px-4 py-4 font-medium">#</th>
+                            <th class="px-4 py-4 font-medium">Name</th>
+                            <th class="px-4 py-4 font-medium text-right">Price</th>
+                            <th class="px-4 py-4 font-medium text-right">24h %</th>
+                            <th class="px-4 py-4 font-medium text-right hidden md:table-cell">Market Cap</th>
+                            <th class="px-4 py-4 font-medium text-right hidden lg:table-cell">Volume</th>
+                            <th class="px-4 py-4 font-medium text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="market-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <div id="overlay" class="fixed inset-0 bg-black/40 z-40 hidden opacity-0 transition-opacity duration-300" onclick="closeDrawer()"></div>
+
+    <div id="drawer" class="fixed top-0 right-0 h-full w-full md:w-[480px] bg-white shadow-2xl z-50 drawer flex flex-col">
+        <div class="p-5 border-b border-gray-100 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div id="drawer-icon" class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-lg font-bold"></div>
+                <div>
+                    <h3 id="drawer-title" class="font-bold text-lg">Asset Name</h3>
+                    <p id="drawer-subtitle" class="text-xs text-gray-500">Exchange</p>
+                </div>
+            </div>
+            <button onclick="closeDrawer()" class="text-gray-400 hover:text-gray-900 text-2xl">&times;</button>
+        </div>
+        <div id="drawer-content" class="flex-1 overflow-y-auto p-6 fade-in"></div>
+    </div>
+
+    <script>
+        const globalAssets = [
+            { rank: 1, symbol: 'AAPL', name: 'Apple Inc.', price: 230.54, change: 1.24, mcap: '3.52T', vol: '45.2B' },
+            { rank: 2, symbol: 'MSFT', name: 'Microsoft', price: 415.20, change: 0.85, mcap: '3.08T', vol: '21.1B' },
+            { rank: 3, symbol: 'RELIANCE.NS', name: 'Reliance (India)', price: 2950.15, change: -0.45, mcap: '19.9T', vol: '8.5M' },
+            { rank: 4, symbol: 'TCS.NS', name: 'Tata Consultancy', price: 4120.50, change: 1.10, mcap: '15.0T', vol: '3.2M' },
+            { rank: 5, symbol: 'BTC-USD', name: 'Bitcoin', price: 67430.00, change: 2.15, mcap: '1.32T', vol: '32.4B' },
+            { rank: 6, symbol: 'TSLA', name: 'Tesla', price: 245.12, change: -1.85, mcap: '780B', vol: '65.4B' }
+        ];
+
+        function formatNumber(num, currency = 'USD') {
+            if (currency === 'INR') return '₹' + num.toLocaleString('en-IN');
+            return '$' + num.toLocaleString('en-US');
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('market-table-body');
+            tbody.innerHTML = '';
+            globalAssets.forEach(asset => {
+                const isPos = asset.change >= 0;
+                const changeClass = isPos ? 'pos-bg' : 'neg-bg';
+                const currency = asset.symbol.includes('.NS') ? 'INR' : 'USD';
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-gray-50 hover:bg-gray-50/50 transition cursor-pointer';
+                tr.onclick = () => openDrawer(asset.symbol);
+                tr.innerHTML = `
+                    <td class="px-4 py-5 text-gray-400">${asset.rank}</td>
+                    <td class="px-4 py-5 font-semibold">${asset.symbol.replace('.NS', '')}<span class="block text-xs text-gray-500 font-normal">${asset.name}</span></td>
+                    <td class="px-4 py-5 text-right font-semibold">${formatNumber(asset.price, currency)}</td>
+                    <td class="px-4 py-5 text-right"><span class="px-2.5 py-1 rounded-lg text-xs ${changeClass}">${isPos ? '+' : ''}${asset.change}%</span></td>
+                    <td class="px-4 py-5 text-right hidden md:table-cell">${asset.mcap}</td>
+                    <td class="px-4 py-5 text-right hidden lg:table-cell">${asset.vol}</td>
+                    <td class="px-4 py-5 text-center"><button class="text-cmc-blue hover:underline text-xs font-semibold pointer-events-none">View Details</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function handleGlobalSearch(event) {
+            if (event.key === 'Enter') {
+                const symbol = event.target.value.trim().toUpperCase();
+                if (symbol) { openDrawer(symbol); event.target.value = ''; }
+            }
+        }
+
+        async function openDrawer(symbol) {
+            const drawer = document.getElementById('drawer');
+            const overlay = document.getElementById('overlay');
+            const content = document.getElementById('drawer-content');
+            
+            drawer.classList.add('open');
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.add('opacity-100'), 10);
+            
+            content.innerHTML = `<div class="flex justify-center py-20"><div class="w-8 h-8 border-2 border-cmc-blue border-t-transparent rounded-full animate-spin"></div></div>`;
+
+            try {
+                const response = await fetch(`/.netlify/functions/stock_data?ticker=${symbol}`);
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                document.getElementById('drawer-title').innerText = data.name;
+                document.getElementById('drawer-subtitle').innerText = data.exchange;
+                document.getElementById('drawer-icon').innerText = data.symbol.substring(0, 1);
+
+                const isPos = data.change >= 0;
+                const changeColor = isPos ? 'pos-text' : 'neg-text';
+                const currency = data.currency === 'INR' ? '₹' : '$';
+
+                content.innerHTML = `
+                    <div class="mb-8">
+                        <div class="flex items-baseline gap-3">
+                            <span class="text-4xl font-bold">${currency}${parseFloat(data.price).toFixed(2)}</span>
+                            <span class="text-lg font-semibold ${changeColor}">${isPos ? '▲ +' : '▼ '}${Math.abs(data.change).toFixed(2)}%</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-8">
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-100"><p class="text-xs text-gray-500">Market Cap</p><p class="font-bold">${formatNumber(data.marketCap, data.currency)}</p></div>
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-100"><p class="text-xs text-gray-500">Volume</p><p class="font-bold">${formatNumber(data.volume, data.currency)}</p></div>
+                    </div>
+                    <div class="space-y-4 text-sm mb-8">
+                        <div class="flex justify-between"><span class="text-gray-500">P/E Ratio</span> <span class="font-semibold">${data.peRatio}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">Day Range</span> <span class="font-semibold">${currency}${parseFloat(data.dayLow).toFixed(2)} - ${currency}${parseFloat(data.dayHigh).toFixed(2)}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">52 Week Range</span> <span class="font-semibold">${currency}${parseFloat(data.fiftyTwoWeekLow).toFixed(2)} - ${currency}${parseFloat(data.fiftyTwoWeekHigh).toFixed(2)}</span></div>
+                    </div>
+                    
+                    <div class="border-t border-gray-100 pt-6">
+                        <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">GitHub Algorithms</h3>
+                        <button onclick="fetchRepoNews('${symbol}')" class="w-full bg-gray-900 text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition flex items-center justify-center gap-2">
+                            🤖 Run News Scanner for ${symbol}
+                        </button>
+                        <div id="repo-news-output" class="mt-4 bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-xs hidden whitespace-pre-wrap overflow-x-auto max-h-64"></div>
+                    </div>
+                `;
+            } catch (error) {
+                content.innerHTML = `<div class="text-center py-20 text-red-500"><p>Failed to load data for ${symbol}.</p></div>`;
+            }
+        }
+
+        async function fetchRepoNews(ticker) {
+            const outputBox = document.getElementById('repo-news-output');
+            outputBox.classList.remove('hidden');
+            outputBox.innerText = `> Executing trader-news/news.py for ${ticker}...\n> Awaiting GitHub script response...`;
+            try {
+                const res = await fetch(`/.netlify/functions/run_news?ticker=${ticker}`);
+                const data = await res.json();
+                outputBox.innerText = `> Source: ${data.source}\n> Ticker: ${data.ticker}\n\n${data.terminal_output || 'Script executed successfully.'}\n\n${data.errors || ''}`;
+            } catch (err) {
+                outputBox.innerText = "> ERROR: Could not connect to GitHub script.";
+            }
+        }
+
+        function closeDrawer() {
+            document.getElementById('drawer').classList.remove('open');
+            document.getElementById('overlay').classList.remove('opacity-100');
+            setTimeout(() => document.getElementById('overlay').classList.add('hidden'), 300);
+        }
+
+        renderTable();
+    </script>
+</body>
+</html>

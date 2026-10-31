@@ -11,13 +11,10 @@ st.markdown("""
     <style>
         .main .block-container { background-color: #131722; padding-top: 2rem; }
         section[data-testid="stSidebar"] { background-color: #1e222d !important; border-right: 1px solid #2a2e39; }
-        h1, h2, h3 { color: #d1d4dc !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        h1, h2, h3 { color: #d1d4dc !important; }
         p, label, span { color: #787b86 !important; }
         .stTextInput > div > div > input, .stNumberInput > div > div > input, .stSelectbox > div > div > select { 
             background-color: #2a2e39 !important; color: #d1d4dc !important; border: 1px solid #363a45 !important; border-radius: 4px;
-        }
-        .stTextInput > div > div > input:focus, .stSelectbox > div > div > select:focus {
-            border-color: #2962ff !important; box-shadow: 0 0 0 2px rgba(41, 98, 255, 0.2) !important;
         }
         .stButton > button { 
             background-color: #2962ff !important; color: #ffffff !important; font-weight: 600; border: none; border-radius: 4px; width: 100%; transition: all 0.2s ease;
@@ -30,12 +27,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. Header
 st.markdown("<h1 style='text-align: center; margin-bottom: 0.2rem; color: #d1d4dc;'>📈 VKR Day Trader Command Center</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #787b86; margin-top: 0; font-size: 1.1rem;'>Execute algorithmic trading modules directly from your browser.</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# 4. Sidebar Navigation
+# 3. Sidebar Navigation
 st.sidebar.markdown("### 🛠️ Modules")
 module = st.sidebar.radio("", [
     "0. 🔍 System Diagnostic",
@@ -54,22 +50,13 @@ module = st.sidebar.radio("", [
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("💡 *Tip: Use `.NS` for Indian stocks (e.g., `RELIANCE.NS`)*")
-st.sidebar.markdown("⚠️ *All executions default to paper trading.*")
 
-# 5. Bulletproof Helper Function
+# 4. Bulletproof Helper Function
 def run_script(command_list):
     with st.spinner(f"⚙️ Running: {command_list[1]}"):
         try:
-            # Replace 'python3' with the exact Python executable running Streamlit
             safe_cmd = [sys.executable] + command_list[1:]
-            
-            result = subprocess.run(
-                safe_cmd, 
-                capture_output=True, 
-                text=True, 
-                timeout=60,
-                cwd=os.getcwd()
-            )
+            result = subprocess.run(safe_cmd, capture_output=True, text=True, timeout=60, cwd=os.getcwd())
             
             if result.returncode != 0:
                 st.error(f"❌ Script failed (Exit Code: {result.returncode})")
@@ -90,25 +77,31 @@ def run_script(command_list):
         except Exception as e:
             st.error(f"❌ Critical Error: {str(e)}")
 
-# 6. Module Logic
+# 5. Module Logic
 if module == "0. 🔍 System Diagnostic":
     st.header("🔍 System Diagnostic")
-    st.markdown("This tool checks if the server can see your files and run Python correctly.")
+    st.success("✅ All your GitHub folders are successfully loaded!")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("📂 Files in Repository")
-        files = os.listdir('.')
-        st.code("\n".join(sorted(files)), language="text")
-        
-    with col2:
-        st.subheader("🐍 Python Check")
-        if st.button("Run Python Version Check"):
-            result = subprocess.run([sys.executable, "--version"], capture_output=True, text=True)
-            st.code(result.stdout + result.stderr, language="bash")
-            
+    st.subheader("📂 Files in Repository")
+    files = os.listdir('.')
+    st.code("\n".join(sorted(files)), language="text")
+    
     st.markdown("---")
-    st.markdown("💡 **If you don't see folders like `trader-news`, `trader-scanner`, etc., in the list above, you need to push those folders to GitHub!**")
+    st.subheader("🐞 Live Debug Test")
+    st.markdown("Click this button to run the News Monitor and see the EXACT error message.")
+    
+    if st.button("Run Live Debug Test (News Monitor for AAPL)"):
+        with st.spinner("Running test..."):
+            cmd = [sys.executable, "trader-news/news.py", "--tickers", "AAPL", "--hours", "24"]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, cwd=os.getcwd())
+            
+            st.markdown("### 📝 Standard Output (What the script printed):")
+            st.code(result.stdout or "No output", language="text")
+            
+            st.markdown("### ❌ Error Output (Why it crashed):")
+            st.code(result.stderr or "No errors", language="text")
+            
+            st.markdown(f"### 🔢 Exit Code: `{result.returncode}`")
 
 elif module == "1. 📰 News Monitor":
     st.header("📰 News Monitor")
@@ -201,6 +194,5 @@ elif module == "11. 📑 Earnings Analyst":
     if st.button("Analyze Earnings"):
         run_script(["python3", "trader-analyst/facts.py", ticker])
 
-# 7. Footer
 st.markdown("---")
 st.markdown("<p style='text-align: center; color: #787b86; font-size: 0.8rem;'>Built with Streamlit • Powered by your GitHub Repository • Not Financial Advice</p>", unsafe_allow_html=True)

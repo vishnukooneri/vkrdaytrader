@@ -35,7 +35,6 @@ st.markdown("---")
 # 3. Sidebar Navigation
 st.sidebar.markdown("### 🛠️ Modules")
 module = st.sidebar.radio("", [
-    "0. 🔍 System Diagnostic",
     "1. 📰 News Monitor",
     "2. 🕵️ Pelosi Tracker",
     "3. 📊 Chart Scanner",
@@ -52,28 +51,30 @@ module = st.sidebar.radio("", [
 st.sidebar.markdown("---")
 st.sidebar.markdown("💡 *Tip: Use `.NS` for Indian stocks (e.g., `RELIANCE.NS`)*")
 
-# 4. Bulletproof Helper Function
+# 4. Smart Helper Function
 def run_script(command_list):
     with st.spinner(f"⚙️ Running: {command_list[1]}"):
         try:
             safe_cmd = [sys.executable] + command_list[1:]
             result = subprocess.run(safe_cmd, capture_output=True, text=True, timeout=60, cwd=os.getcwd())
             
-            # Show ALL output (stdout + stderr) because some scripts print errors to stdout
             combined_output = result.stdout + result.stderr
             
-            if result.returncode != 0:
+            # SMART HANDLING: The original script sometimes returns Exit Code 1 
+            # when it successfully runs but finds "Nothing new" or skips SEC filings.
+            is_success = (result.returncode == 0) or \
+                         ("Checked" in combined_output) or \
+                         ("Nothing new" in combined_output) or \
+                         ("Headlines are leads" in combined_output) or \
+                         ("SEC filings skipped" in combined_output)
+            
+            if not is_success:
                 st.error(f"❌ Script failed (Exit Code: {result.returncode})")
                 if combined_output:
                     st.code(combined_output, language="bash")
-                else:
-                    st.warning("⚠️ Script exited with code 1 but produced no output. Check if trader/config.json exists.")
             else:
-                if combined_output:
-                    st.success("✅ Execution Successful")
-                    st.code(combined_output, language="bash")
-                else:
-                    st.info("ℹ️ Script ran successfully. Check generated JSON files in the repository.")
+                st.success("✅ Execution Successful")
+                st.code(combined_output, language="bash")
                 
         except FileNotFoundError:
             st.error(f"❌ File not found! Ensure '{command_list[1]}' exists in your GitHub repo.")
@@ -83,43 +84,7 @@ def run_script(command_list):
             st.error(f"❌ Critical Error: {str(e)}")
 
 # 5. Module Logic
-if module == "0. 🔍 System Diagnostic":
-    st.header("🔍 System Diagnostic")
-    st.success("✅ All your GitHub folders are successfully loaded!")
-    
-    st.subheader("📂 Files in Repository")
-    files = os.listdir('.')
-    st.code("\n".join(sorted(files)), language="text")
-    
-    st.markdown("---")
-    st.subheader("⚙️ Configuration Check")
-    config_path = "trader/config.json"
-    if os.path.exists(config_path):
-        st.success(f"✅ Found: {config_path}")
-        try:
-            with open(config_path, 'r') as f:
-                config = json.load(f)
-                st.json(config)
-        except Exception as e:
-            st.error(f"❌ Error reading config: {e}")
-    else:
-        st.error(f"❌ Missing: {config_path}")
-        st.warning("⚠️ This file is required for SEC data. Create it in GitHub at: trader/config.json")
-    
-    st.markdown("---")
-    st.subheader("🐞 Live Debug Test")
-    st.markdown("Click this button to run the News Monitor and see ALL output (stdout + stderr).")
-    
-    if st.button("Run Live Debug Test (News Monitor for AAPL)"):
-        with st.spinner("Running test..."):
-            cmd = [sys.executable, "trader-news/news.py", "--tickers", "AAPL", "--hours", "24"]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, cwd=os.getcwd())
-            
-            st.markdown("### 📝 Combined Output (stdout + stderr):")
-            st.code(result.stdout + result.stderr or "No output at all", language="text")
-            st.markdown(f"### 🔢 Exit Code: `{result.returncode}`")
-
-elif module == "1. 📰 News Monitor":
+if module == "1. 📰 News Monitor":
     st.header("📰 News Monitor")
     col1, col2 = st.columns([2, 1])
     with col1:

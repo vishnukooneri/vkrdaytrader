@@ -2,6 +2,7 @@ import streamlit as st
 import subprocess
 import os
 import sys
+import json
 
 # 1. Page Configuration
 st.set_page_config(page_title="VKR Day Trader OS", page_icon="📈", layout="wide")
@@ -58,17 +59,21 @@ def run_script(command_list):
             safe_cmd = [sys.executable] + command_list[1:]
             result = subprocess.run(safe_cmd, capture_output=True, text=True, timeout=60, cwd=os.getcwd())
             
+            # Show ALL output (stdout + stderr) because some scripts print errors to stdout
+            combined_output = result.stdout + result.stderr
+            
             if result.returncode != 0:
                 st.error(f"❌ Script failed (Exit Code: {result.returncode})")
-                if result.stderr:
-                    st.code(result.stderr, language="bash")
-                    
-            if result.stdout:
-                st.success("✅ Execution Successful")
-                st.code(result.stdout, language="bash")
-                
-            if not result.stdout and result.returncode == 0:
-                st.info("ℹ️ Script ran successfully. Check generated JSON files in the repository.")
+                if combined_output:
+                    st.code(combined_output, language="bash")
+                else:
+                    st.warning("⚠️ Script exited with code 1 but produced no output. Check if trader/config.json exists.")
+            else:
+                if combined_output:
+                    st.success("✅ Execution Successful")
+                    st.code(combined_output, language="bash")
+                else:
+                    st.info("ℹ️ Script ran successfully. Check generated JSON files in the repository.")
                 
         except FileNotFoundError:
             st.error(f"❌ File not found! Ensure '{command_list[1]}' exists in your GitHub repo.")
@@ -87,20 +92,31 @@ if module == "0. 🔍 System Diagnostic":
     st.code("\n".join(sorted(files)), language="text")
     
     st.markdown("---")
+    st.subheader("⚙️ Configuration Check")
+    config_path = "trader/config.json"
+    if os.path.exists(config_path):
+        st.success(f"✅ Found: {config_path}")
+        try:
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+                st.json(config)
+        except Exception as e:
+            st.error(f"❌ Error reading config: {e}")
+    else:
+        st.error(f"❌ Missing: {config_path}")
+        st.warning("⚠️ This file is required for SEC data. Create it in GitHub at: trader/config.json")
+    
+    st.markdown("---")
     st.subheader("🐞 Live Debug Test")
-    st.markdown("Click this button to run the News Monitor and see the EXACT error message.")
+    st.markdown("Click this button to run the News Monitor and see ALL output (stdout + stderr).")
     
     if st.button("Run Live Debug Test (News Monitor for AAPL)"):
         with st.spinner("Running test..."):
             cmd = [sys.executable, "trader-news/news.py", "--tickers", "AAPL", "--hours", "24"]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, cwd=os.getcwd())
             
-            st.markdown("### 📝 Standard Output (What the script printed):")
-            st.code(result.stdout or "No output", language="text")
-            
-            st.markdown("### ❌ Error Output (Why it crashed):")
-            st.code(result.stderr or "No errors", language="text")
-            
+            st.markdown("### 📝 Combined Output (stdout + stderr):")
+            st.code(result.stdout + result.stderr or "No output at all", language="text")
             st.markdown(f"### 🔢 Exit Code: `{result.returncode}`")
 
 elif module == "1. 📰 News Monitor":

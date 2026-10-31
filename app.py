@@ -92,7 +92,6 @@ if module == "0. 🔍 System Diagnostic":
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("📂 Files in Repository")
-        # List all files to prove they are uploaded
         files = os.listdir('.')
         st.code("\n".join(files), language="text")
         
@@ -194,7 +193,8 @@ elif module == "11. 📑 Earnings Analyst":
     st.header("📑 Earnings Analyst")
     ticker = st.text_input("Enter Ticker for Earnings Analysis", "AAPL")
     if st.button("Analyze Earnings"):
-        run_script(["python3", "trader-analyst/facts.py", ticker"])
+        # FIXED: Removed the extra quote that caused the SyntaxError
+        run_script(["python3", "trader-analyst/facts.py", ticker])
 
 st.markdown("---")
 st.markdown("<p style='text-align: center; color: #787b86; font-size: 0.8rem;'>Built with Streamlit • Powered by your GitHub Repository • Not Financial Advice</p>", unsafe_allow_html=True)

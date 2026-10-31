@@ -3,10 +3,9 @@ import subprocess
 import os
 import sys
 
-# 1. Page Configuration & Built-in Theme
+# 1. Page Configuration & Theme
 st.set_page_config(page_title="VKR Day Trader OS", page_icon="📈", layout="wide")
 
-# 2. Premium TradingView-Style Custom CSS
 st.markdown("""
     <style>
         .main .block-container { background-color: #131722; padding-top: 2rem; }
@@ -15,9 +14,6 @@ st.markdown("""
         p, label { color: #787b86 !important; }
         .stTextInput > div > div > input, .stNumberInput > div > div > input, .stSelectbox > div > div > select { 
             background-color: #2a2e39 !important; color: #d1d4dc !important; border: 1px solid #363a45 !important; border-radius: 4px;
-        }
-        .stTextInput > div > div > input:focus, .stSelectbox > div > div > select:focus {
-            border-color: #2962ff !important; box-shadow: 0 0 0 2px rgba(41, 98, 255, 0.2) !important;
         }
         .stButton > button { 
             background-color: #2962ff !important; color: #ffffff !important; font-weight: 600; border: none; border-radius: 4px; width: 100%; transition: all 0.2s ease;
@@ -30,40 +26,47 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. Header
 st.markdown("<h1 style='text-align: center; margin-bottom: 0.2rem; color: #d1d4dc;'>📈 VKR Day Trader Command Center</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #787b86; margin-top: 0; font-size: 1.1rem;'>Execute all 11 algorithmic trading modules directly from your browser.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #787b86; margin-top: 0; font-size: 1.1rem;'>Execute algorithmic trading modules directly from your browser.</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# 4. Sidebar Navigation
+# 2. Sidebar Navigation
 st.sidebar.markdown("### 🛠️ Modules")
 module = st.sidebar.radio("", [
-    "1. 📰 News Monitor", "2. 🕵️ Pelosi Tracker", "3. 📊 Chart Scanner", "4. ⏱️ Entry Timer",
-    "5. 🎯 Exit Planner", "6. ⏳ Time Machine Simulator", "7. ⚖️ Budget Manager",
-    "8. 🛡️ Risk Manager", "9. 🏦 Order Executor", "10. 🔔 Price Alerts", "11. 📑 Earnings Analyst"
+    "0. 🔍 System Diagnostic",
+    "1. 📰 News Monitor",
+    "2. 🕵️ Pelosi Tracker",
+    "3. 📊 Chart Scanner",
+    "4. ⏱️ Entry Timer",
+    "5. 🎯 Exit Planner",
+    "6. ⏳ Time Machine Simulator",
+    "7. ⚖️ Budget Manager",
+    "8. 🛡️ Risk Manager",
+    "9. 🏦 Order Executor",
+    "10. 🔔 Price Alerts",
+    "11. 📑 Earnings Analyst"
 ], label_visibility="collapsed")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("💡 *Tip: Use `.NS` for Indian stocks (e.g., `RELIANCE.NS`)*")
-st.sidebar.markdown("⚠️ *All executions default to paper trading.*")
 
-# 5. Helper Function (Bulletproof Execution)
+# 3. Helper Function
 def run_script(command_list):
-    with st.spinner(f"⚙️ Executing {command_list[1].replace('.py', '')}..."):
+    with st.spinner(f"⚙️ Running: {command_list[1]}"):
         try:
-            # FORCE the use of the exact Python interpreter running Streamlit
-            safe_command = [sys.executable] + command_list[1:]
+            # Use sys.executable to guarantee we use the server's Python
+            safe_cmd = [sys.executable] + command_list[1:]
             
             result = subprocess.run(
-                safe_command, 
+                safe_cmd, 
                 capture_output=True, 
                 text=True, 
-                timeout=60, # Increased to 60s for heavier scans
+                timeout=60,
                 cwd=os.getcwd()
             )
             
             if result.returncode != 0:
-                st.error(f"❌ Script failed with exit code {result.returncode}")
+                st.error(f"❌ Script failed (Exit Code: {result.returncode})")
                 if result.stderr:
                     st.code(result.stderr, language="bash")
                     
@@ -74,15 +77,35 @@ def run_script(command_list):
             if not result.stdout and result.returncode == 0:
                 st.info("ℹ️ Script ran successfully. Check generated JSON files in the repository.")
                 
+        except FileNotFoundError:
+            st.error(f"❌ File not found! Ensure '{command_list[1]}' exists in your GitHub repo.")
         except subprocess.TimeoutExpired:
-            st.error("⏱️ Timeout: The script took longer than 60 seconds to run.")
-        except FileNotFoundError as e:
-            st.error(f"❌ File not found: {e}. Ensure the script exists in the repo.")
+            st.error("⏱️ Timeout: The script took longer than 60 seconds.")
         except Exception as e:
             st.error(f"❌ Critical Error: {str(e)}")
 
-# 6. Module Logic
-if module == "1. 📰 News Monitor":
+# 4. Module Logic
+if module == "0. 🔍 System Diagnostic":
+    st.header("🔍 System Diagnostic")
+    st.markdown("This tool checks if the server can see your files and run Python.")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("📂 Files in Repository")
+        # List all files to prove they are uploaded
+        files = os.listdir('.')
+        st.code("\n".join(files), language="text")
+        
+    with col2:
+        st.subheader("🐍 Python Check")
+        if st.button("Run Python Version Check"):
+            result = subprocess.run([sys.executable, "--version"], capture_output=True, text=True)
+            st.code(result.stdout + result.stderr, language="bash")
+            
+    st.markdown("---")
+    st.markdown("💡 **If you don't see `trader-news`, `trader-scanner`, etc., in the file list above, you need to push those folders to GitHub!**")
+
+elif module == "1. 📰 News Monitor":
     st.header("📰 News Monitor")
     col1, col2 = st.columns([2, 1])
     with col1:
@@ -100,7 +123,7 @@ elif module == "2. 🕵️ Pelosi Tracker":
 
 elif module == "3. 📊 Chart Scanner":
     st.header("📊 Chart Scanner")
-    scan_type = st.selectbox("Scan Type", ["orb (Opening Range Breakout)", "daily (Pre-market setups)", "universe (All ~5,900 stocks)"])
+    scan_type = st.selectbox("Scan Type", ["orb", "daily", "universe"])
     if st.button("Start Scan"):
         if scan_type == "orb":
             run_script(["python3", "trader-scanner/scan.py", "orb", "--at", "10:15"])
@@ -173,6 +196,5 @@ elif module == "11. 📑 Earnings Analyst":
     if st.button("Analyze Earnings"):
         run_script(["python3", "trader-analyst/facts.py", ticker"])
 
-# 7. Footer
 st.markdown("---")
 st.markdown("<p style='text-align: center; color: #787b86; font-size: 0.8rem;'>Built with Streamlit • Powered by your GitHub Repository • Not Financial Advice</p>", unsafe_allow_html=True)

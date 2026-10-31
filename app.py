@@ -1,6 +1,7 @@
 import streamlit as st
 import subprocess
 import os
+import sys
 
 # 1. Page Configuration & Built-in Theme
 st.set_page_config(page_title="VKR Day Trader OS", page_icon="📈", layout="wide")
@@ -8,56 +9,24 @@ st.set_page_config(page_title="VKR Day Trader OS", page_icon="📈", layout="wid
 # 2. Premium TradingView-Style Custom CSS
 st.markdown("""
     <style>
-        /* Base Backgrounds */
         .main .block-container { background-color: #131722; padding-top: 2rem; }
         section[data-testid="stSidebar"] { background-color: #1e222d !important; border-right: 1px solid #2a2e39; }
-        
-        /* Typography */
         h1, h2, h3 { color: #d1d4dc !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         p, label { color: #787b86 !important; }
-        
-        /* Inputs & Selectors */
         .stTextInput > div > div > input, .stNumberInput > div > div > input, .stSelectbox > div > div > select { 
-            background-color: #2a2e39 !important; 
-            color: #d1d4dc !important; 
-            border: 1px solid #363a45 !important;
-            border-radius: 4px;
+            background-color: #2a2e39 !important; color: #d1d4dc !important; border: 1px solid #363a45 !important; border-radius: 4px;
         }
         .stTextInput > div > div > input:focus, .stSelectbox > div > div > select:focus {
-            border-color: #2962ff !important;
-            box-shadow: 0 0 0 2px rgba(41, 98, 255, 0.2) !important;
+            border-color: #2962ff !important; box-shadow: 0 0 0 2px rgba(41, 98, 255, 0.2) !important;
         }
-        
-        /* Buttons */
         .stButton > button { 
-            background-color: #2962ff !important; 
-            color: #ffffff !important; 
-            font-weight: 600; 
-            border: none;
-            border-radius: 4px;
-            width: 100%;
-            transition: all 0.2s ease;
+            background-color: #2962ff !important; color: #ffffff !important; font-weight: 600; border: none; border-radius: 4px; width: 100%; transition: all 0.2s ease;
         }
-        .stButton > button:hover { 
-            background-color: #1e53e5 !important; 
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(41, 98, 255, 0.3);
-        }
-        
-        /* Terminal Output Code Blocks */
+        .stButton > button:hover { background-color: #1e53e5 !important; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(41, 98, 255, 0.3); }
         code { 
-            background-color: #000000 !important; 
-            color: #00c853 !important; /* Vibrant Terminal Green */
-            border: 1px solid #2a2e39;
-            border-radius: 4px;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 0.85rem;
+            background-color: #000000 !important; color: #00c853 !important; border: 1px solid #2a2e39; border-radius: 4px; font-family: 'Courier New', Courier, monospace; font-size: 0.85rem;
         }
-        
-        /* Hide Streamlit Branding */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
+        #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -69,46 +38,48 @@ st.markdown("---")
 # 4. Sidebar Navigation
 st.sidebar.markdown("### 🛠️ Modules")
 module = st.sidebar.radio("", [
-    "1. 📰 News Monitor",
-    "2. 🕵️ Pelosi Tracker",
-    "3. 📊 Chart Scanner",
-    "4. ⏱️ Entry Timer",
-    "5. 🎯 Exit Planner",
-    "6. ⏳ Time Machine Simulator",
-    "7. ⚖️ Budget Manager",
-    "8. 🛡️ Risk Manager",
-    "9. 🏦 Order Executor",
-    "10. 🔔 Price Alerts",
-    "11. 📑 Earnings Analyst"
+    "1. 📰 News Monitor", "2. 🕵️ Pelosi Tracker", "3. 📊 Chart Scanner", "4. ⏱️ Entry Timer",
+    "5. 🎯 Exit Planner", "6. ⏳ Time Machine Simulator", "7. ⚖️ Budget Manager",
+    "8. 🛡️ Risk Manager", "9. 🏦 Order Executor", "10. 🔔 Price Alerts", "11. 📑 Earnings Analyst"
 ], label_visibility="collapsed")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("💡 *Tip: Use `.NS` for Indian stocks (e.g., `RELIANCE.NS`)*")
 st.sidebar.markdown("⚠️ *All executions default to paper trading.*")
 
-# 5. Helper Function
+# 5. Helper Function (Bulletproof Execution)
 def run_script(command_list):
     with st.spinner(f"⚙️ Executing {command_list[1].replace('.py', '')}..."):
         try:
+            # FORCE the use of the exact Python interpreter running Streamlit
+            safe_command = [sys.executable] + command_list[1:]
+            
             result = subprocess.run(
-                command_list, 
+                safe_command, 
                 capture_output=True, 
                 text=True, 
-                timeout=45,
+                timeout=60, # Increased to 60s for heavier scans
                 cwd=os.getcwd()
             )
+            
+            if result.returncode != 0:
+                st.error(f"❌ Script failed with exit code {result.returncode}")
+                if result.stderr:
+                    st.code(result.stderr, language="bash")
+                    
             if result.stdout:
                 st.success("✅ Execution Successful")
                 st.code(result.stdout, language="bash")
-            if result.stderr:
-                st.warning("⚠️ Warnings / Info:")
-                st.code(result.stderr, language="bash")
-            if not result.stdout and not result.stderr:
+                
+            if not result.stdout and result.returncode == 0:
                 st.info("ℹ️ Script ran successfully. Check generated JSON files in the repository.")
+                
         except subprocess.TimeoutExpired:
-            st.error("⏱️ Timeout: The script took longer than 45 seconds to run.")
+            st.error("⏱️ Timeout: The script took longer than 60 seconds to run.")
+        except FileNotFoundError as e:
+            st.error(f"❌ File not found: {e}. Ensure the script exists in the repo.")
         except Exception as e:
-            st.error(f"❌ Failed to run script: {str(e)}")
+            st.error(f"❌ Critical Error: {str(e)}")
 
 # 6. Module Logic
 if module == "1. 📰 News Monitor":

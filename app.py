@@ -3,17 +3,21 @@ import subprocess
 import os
 import sys
 
-# 1. Page Configuration & Theme
+# 1. Page Configuration
 st.set_page_config(page_title="VKR Day Trader OS", page_icon="📈", layout="wide")
 
+# 2. Premium TradingView-Style Custom CSS
 st.markdown("""
     <style>
         .main .block-container { background-color: #131722; padding-top: 2rem; }
         section[data-testid="stSidebar"] { background-color: #1e222d !important; border-right: 1px solid #2a2e39; }
         h1, h2, h3 { color: #d1d4dc !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        p, label { color: #787b86 !important; }
+        p, label, span { color: #787b86 !important; }
         .stTextInput > div > div > input, .stNumberInput > div > div > input, .stSelectbox > div > div > select { 
             background-color: #2a2e39 !important; color: #d1d4dc !important; border: 1px solid #363a45 !important; border-radius: 4px;
+        }
+        .stTextInput > div > div > input:focus, .stSelectbox > div > div > select:focus {
+            border-color: #2962ff !important; box-shadow: 0 0 0 2px rgba(41, 98, 255, 0.2) !important;
         }
         .stButton > button { 
             background-color: #2962ff !important; color: #ffffff !important; font-weight: 600; border: none; border-radius: 4px; width: 100%; transition: all 0.2s ease;
@@ -26,11 +30,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# 3. Header
 st.markdown("<h1 style='text-align: center; margin-bottom: 0.2rem; color: #d1d4dc;'>📈 VKR Day Trader Command Center</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #787b86; margin-top: 0; font-size: 1.1rem;'>Execute algorithmic trading modules directly from your browser.</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# 2. Sidebar Navigation
+# 4. Sidebar Navigation
 st.sidebar.markdown("### 🛠️ Modules")
 module = st.sidebar.radio("", [
     "0. 🔍 System Diagnostic",
@@ -49,12 +54,13 @@ module = st.sidebar.radio("", [
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("💡 *Tip: Use `.NS` for Indian stocks (e.g., `RELIANCE.NS`)*")
+st.sidebar.markdown("⚠️ *All executions default to paper trading.*")
 
-# 3. Helper Function
+# 5. Bulletproof Helper Function
 def run_script(command_list):
     with st.spinner(f"⚙️ Running: {command_list[1]}"):
         try:
-            # Use sys.executable to guarantee we use the server's Python
+            # Replace 'python3' with the exact Python executable running Streamlit
             safe_cmd = [sys.executable] + command_list[1:]
             
             result = subprocess.run(
@@ -80,20 +86,20 @@ def run_script(command_list):
         except FileNotFoundError:
             st.error(f"❌ File not found! Ensure '{command_list[1]}' exists in your GitHub repo.")
         except subprocess.TimeoutExpired:
-            st.error("⏱️ Timeout: The script took longer than 60 seconds.")
+            st.error("⏱️ Timeout: The script took longer than 60 seconds to run.")
         except Exception as e:
             st.error(f"❌ Critical Error: {str(e)}")
 
-# 4. Module Logic
+# 6. Module Logic
 if module == "0. 🔍 System Diagnostic":
     st.header("🔍 System Diagnostic")
-    st.markdown("This tool checks if the server can see your files and run Python.")
+    st.markdown("This tool checks if the server can see your files and run Python correctly.")
     
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("📂 Files in Repository")
         files = os.listdir('.')
-        st.code("\n".join(files), language="text")
+        st.code("\n".join(sorted(files)), language="text")
         
     with col2:
         st.subheader("🐍 Python Check")
@@ -102,7 +108,7 @@ if module == "0. 🔍 System Diagnostic":
             st.code(result.stdout + result.stderr, language="bash")
             
     st.markdown("---")
-    st.markdown("💡 **If you don't see `trader-news`, `trader-scanner`, etc., in the file list above, you need to push those folders to GitHub!**")
+    st.markdown("💡 **If you don't see folders like `trader-news`, `trader-scanner`, etc., in the list above, you need to push those folders to GitHub!**")
 
 elif module == "1. 📰 News Monitor":
     st.header("📰 News Monitor")
@@ -193,8 +199,8 @@ elif module == "11. 📑 Earnings Analyst":
     st.header("📑 Earnings Analyst")
     ticker = st.text_input("Enter Ticker for Earnings Analysis", "AAPL")
     if st.button("Analyze Earnings"):
-        # FIXED: Removed the extra quote that caused the SyntaxError
         run_script(["python3", "trader-analyst/facts.py", ticker])
 
+# 7. Footer
 st.markdown("---")
 st.markdown("<p style='text-align: center; color: #787b86; font-size: 0.8rem;'>Built with Streamlit • Powered by your GitHub Repository • Not Financial Advice</p>", unsafe_allow_html=True)

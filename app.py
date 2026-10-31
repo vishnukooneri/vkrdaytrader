@@ -56,17 +56,17 @@ def run_script(command_list):
     with st.spinner(f"⚙️ Running: {command_list[1]}"):
         try:
             safe_cmd = [sys.executable] + command_list[1:]
-            result = subprocess.run(safe_cmd, capture_output=True, text=True, timeout=60, cwd=os.getcwd())
+            result = subprocess.run(safe_cmd, capture_output=True, text=True, timeout=120, cwd=os.getcwd()) # Increased timeout to 120s for heavy scans
             
             combined_output = result.stdout + result.stderr
             
-            # SMART HANDLING: The original script sometimes returns Exit Code 1 
-            # when it successfully runs but finds "Nothing new" or skips SEC filings.
+            # SMART HANDLING: Recognize successful outputs that return Exit Code 1
             is_success = (result.returncode == 0) or \
                          ("Checked" in combined_output) or \
                          ("Nothing new" in combined_output) or \
                          ("Headlines are leads" in combined_output) or \
-                         ("SEC filings skipped" in combined_output)
+                         ("SEC filings skipped" in combined_output) or \
+                         ("universe.txt" in combined_output) # For the scanner
             
             if not is_success:
                 st.error(f"❌ Script failed (Exit Code: {result.returncode})")
@@ -79,7 +79,7 @@ def run_script(command_list):
         except FileNotFoundError:
             st.error(f"❌ File not found! Ensure '{command_list[1]}' exists in your GitHub repo.")
         except subprocess.TimeoutExpired:
-            st.error("⏱️ Timeout: The script took longer than 60 seconds to run.")
+            st.error("⏱️ Timeout: The script took longer than 2 minutes to run.")
         except Exception as e:
             st.error(f"❌ Critical Error: {str(e)}")
 
@@ -102,15 +102,23 @@ elif module == "2. 🕵️ Pelosi Tracker":
 
 elif module == "3. 📊 Chart Scanner":
     st.header("📊 Chart Scanner")
-    scan_type = st.selectbox("Scan Type", ["orb", "daily", "universe"])
-    if st.button("Start Scan"):
-        if scan_type == "orb":
-            run_script(["python3", "trader-scanner/scan.py", "orb", "--at", "10:15"])
-        elif scan_type == "daily":
-            run_script(["python3", "trader-scanner/scan.py", "daily"])
-        else:
-            st.info("Scanning the full universe may take several minutes.")
+    
+    # SMART CHECK: See if the universe file exists
+    universe_exists = os.path.exists("trader/universe.txt")
+    
+    if not universe_exists:
+        st.warning("⚠️ The Chart Scanner requires a master list of stocks. The file `trader/universe.txt` hasn't been generated yet.")
+        st.info("Click the button below to scan the ~5,900 US stocks and generate the universe file. **This only needs to be done once** and may take 1-2 minutes.")
+        if st.button("🚀 Generate Universe File (One-time setup)"):
             run_script(["python3", "trader-scanner/scan.py", "universe"])
+    else:
+        st.success("✅ Universe file found. Ready to scan!")
+        scan_type = st.selectbox("Scan Type", ["daily (Pre-market setups)", "orb (Opening Range Breakout)"])
+        if st.button("Start Scan"):
+            if "daily" in scan_type:
+                run_script(["python3", "trader-scanner/scan.py", "daily"])
+            else:
+                run_script(["python3", "trader-scanner/scan.py", "orb", "--at", "10:15"])
 
 elif module == "4. ⏱️ Entry Timer":
     st.header("⏱️ Entry Timer")
